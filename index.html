@@ -4,14 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>修行筆記</title>
-    <!-- 使用更穩定的 CDN 來源並補足相依性 -->
+    <!-- 引入穩定的程式庫 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script>
+    <!-- Recharts 需要在 React 之後載入 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.12.7/Recharts.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- 修正 Lucide 載入方式，使用 lucide-react 的 UMD 版本 -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&family=Noto+Sans+TC:wght@400;700&display=swap');
         :root { --main-bg: #FDFCFB; }
@@ -25,15 +27,22 @@
 
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
-        const { 
-            Plus, Settings, BarChart3, Calendar, ChevronRight, 
-            Trash2, BookOpen, X, MessageSquare 
-        } = lucide;
-        // 注意：在 UMD 版本中 Recharts 通常掛載在全域變數下
+        
+        // 修正圖表組件獲取方式
         const { 
             AreaChart, Area, XAxis, YAxis, CartesianGrid, 
             Tooltip, ResponsiveContainer 
         } = window.Recharts;
+
+        // 建立一個簡單的圖示組件來避免 Lucide 載入錯誤
+        const Icon = ({ name, size = 24, className = "" }) => {
+            useEffect(() => {
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+            }, [name]);
+            return <i data-lucide={name} style={{ width: size, height: size }} className={className}></i>;
+        };
 
         const INITIAL_PRACTICES = [
             { id: '1', title: '金光明經', total: 0, color: '#d97706' },
@@ -65,7 +74,8 @@
 
             useEffect(() => {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify({ practices, logs }));
-            }, [practices, logs]);
+                if (window.lucide) window.lucide.createIcons();
+            }, [practices, logs, activeTab, isAddLogOpen, isAddPracticeOpen]);
 
             const handleAddLog = () => {
                 if (!selectedPracticeId || (!inputCount && !inputNote)) return;
@@ -121,10 +131,14 @@
                 <div className="max-w-md mx-auto min-h-screen flex flex-col">
                     <header className="bg-white/90 backdrop-blur-md border-b border-stone-100 px-6 py-5 sticky top-0 z-10 flex justify-between items-center">
                         <div className="flex items-center gap-2">
-                            <div className="bg-stone-800 p-1.5 rounded-lg"><BookOpen size={18} className="text-white" /></div>
+                            <div className="bg-stone-800 p-1.5 rounded-lg flex items-center justify-center">
+                                <Icon name="book-open" size={18} className="text-white" />
+                            </div>
                             <span className="text-xl font-bold tracking-tight">修行筆記</span>
                         </div>
-                        <button onClick={() => setIsAddPracticeOpen(true)} className="w-10 h-10 flex items-center justify-center bg-stone-100 rounded-full active:scale-90 transition-all"><Plus size={20} /></button>
+                        <button onClick={() => setIsAddPracticeOpen(true)} className="w-10 h-10 flex items-center justify-center bg-stone-100 rounded-full active:scale-90 transition-all">
+                            <Icon name="plus" size={20} />
+                        </button>
                     </header>
 
                     <main className="flex-1 p-6 overflow-y-auto">
@@ -139,7 +153,7 @@
                                                     <div className="w-1.5 h-10 rounded-full" style={{ backgroundColor: p.color }}></div>
                                                     <div><h3 className="font-bold text-stone-700">{p.title}</h3><p className="text-stone-400 text-xs">累計 {p.total.toLocaleString()}</p></div>
                                                 </div>
-                                                <Plus size={16} className="text-stone-300" />
+                                                <Icon name="plus" size={16} className="text-stone-300" />
                                             </div>
                                         ))}
                                     </div>
@@ -154,7 +168,10 @@
                                                     <span>{new Date(l.date).toLocaleDateString()}</span>
                                                 </div>
                                                 {l.count > 0 && <p className="text-lg font-serif font-bold text-amber-600 mb-1">{l.count} 遍</p>}
-                                                {l.note && <div className="flex gap-2 text-stone-600 text-sm italic border-t border-stone-50 pt-2 mt-1"><MessageSquare size={14} className="mt-1 shrink-0 opacity-50" />{l.note}</div>}
+                                                {l.note && <div className="flex gap-2 text-stone-600 text-sm italic border-t border-stone-50 pt-2 mt-1">
+                                                    <Icon name="message-square" size={14} className="mt-1 shrink-0 opacity-50" />
+                                                    {l.note}
+                                                </div>}
                                             </div>
                                         ))}
                                     </div>
@@ -175,7 +192,7 @@
                                 <div className="bg-white p-6 rounded-[2rem] border border-stone-100 shadow-sm">
                                     <h3 className="text-xs font-bold text-stone-500 mb-6 uppercase tracking-widest">精進曲線 (30D)</h3>
                                     <div className="h-64 w-full">
-                                        <ResponsiveContainer>
+                                        <ResponsiveContainer width="100%" height="100%">
                                             <AreaChart data={stats.chart}>
                                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                                                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#A8A29E' }} minTickGap={30} />
@@ -191,8 +208,14 @@
                     </main>
 
                     <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/80 backdrop-blur-xl border-t border-stone-100 flex justify-around py-4 pb-8 z-20">
-                        <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'home' ? 'text-stone-900 scale-110' : 'text-stone-300'}`}><Calendar size={22} /><span className="text-[10px] font-bold">修持</span></button>
-                        <button onClick={() => setActiveTab('stats')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'stats' ? 'text-stone-900 scale-110' : 'text-stone-300'}`}><BarChart3 size={22} /><span className="text-[10px] font-bold">數據</span></button>
+                        <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'home' ? 'text-stone-900 scale-110' : 'text-stone-300'}`}>
+                            <Icon name="calendar" size={22} />
+                            <span className="text-[10px] font-bold">修持</span>
+                        </button>
+                        <button onClick={() => setActiveTab('stats')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'stats' ? 'text-stone-900 scale-110' : 'text-stone-300'}`}>
+                            <Icon name="bar-chart-3" size={22} />
+                            <span className="text-[10px] font-bold">數據</span>
+                        </button>
                     </nav>
 
                     {isAddLogOpen && (
@@ -200,7 +223,7 @@
                             <div className="bg-[#FDFCFB] w-full max-w-md rounded-t-[3rem] p-10 shadow-2xl animate-in slide-in-from-bottom duration-300">
                                 <div className="flex justify-between items-center mb-8">
                                     <h3 className="text-2xl font-bold tracking-tight">紀錄修持</h3>
-                                    <button onClick={() => setIsAddLogOpen(false)} className="bg-stone-100 p-2 rounded-full"><X size={20} /></button>
+                                    <button onClick={() => setIsAddLogOpen(false)} className="bg-stone-100 p-2 rounded-full"><Icon name="x" size={20} /></button>
                                 </div>
                                 <div className="space-y-6">
                                     <div>
