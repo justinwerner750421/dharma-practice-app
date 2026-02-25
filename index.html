@@ -20,13 +20,6 @@
         body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--main-bg); margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         .font-serif { font-family: 'Noto Serif TC', serif; }
         .recharts-responsive-container { min-height: 250px; }
-        /* 增加刪除按鈕的呼吸效果 */
-        .delete-btn { animation: pulse-red 2s infinite; }
-        @keyframes pulse-red {
-            0% { transform: scale(1); opacity: 0.8; }
-            50% { transform: scale(1.1); opacity: 1; }
-            100% { transform: scale(1); opacity: 0.8; }
-        }
     </style>
 </head>
 <body>
@@ -40,7 +33,7 @@
             Tooltip, ResponsiveContainer 
         } = window.Recharts;
 
-        // 建立一個簡單的圖示組件
+        // 建立圖示組件
         const Icon = ({ name, size = 24, className = "" }) => {
             useEffect(() => {
                 if (window.lucide) {
@@ -59,11 +52,10 @@
         function App() {
             const [practices, setPractices] = useState(INITIAL_PRACTICES);
             const [logs, setLogs] = useState([]);
-            const [activeTab, setActiveTab] = useState('home');
+            const [activeTab, setActiveTab] = useState('home'); // home, stats, manage
             const [selectedPracticeId, setSelectedPracticeId] = useState(null);
             const [isAddLogOpen, setIsAddLogOpen] = useState(false);
             const [isAddPracticeOpen, setIsAddPracticeOpen] = useState(false);
-            const [isDeleteMode, setIsDeleteMode] = useState(false);
             const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
             const [inputCount, setInputCount] = useState('');
@@ -84,7 +76,7 @@
             useEffect(() => {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify({ practices, logs }));
                 if (window.lucide) window.lucide.createIcons();
-            }, [practices, logs, activeTab, isAddLogOpen, isAddPracticeOpen, isDeleteMode, confirmDeleteId]);
+            }, [practices, logs, activeTab, isAddLogOpen, isAddPracticeOpen, confirmDeleteId]);
 
             const handleAddLog = () => {
                 if (!selectedPracticeId || (!inputCount && !inputNote)) return;
@@ -119,7 +111,6 @@
                 setPractices(prev => prev.filter(p => p.id !== id));
                 setLogs(prev => prev.filter(l => l.practiceId !== id));
                 setConfirmDeleteId(null);
-                if (practices.length <= 1) setIsDeleteMode(false);
             };
 
             const stats = useMemo(() => {
@@ -152,50 +143,32 @@
                             </div>
                             <span className="text-xl font-bold tracking-tight">修行筆記</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <button 
-                                onClick={() => setIsDeleteMode(!isDeleteMode)} 
-                                className={`w-10 h-10 flex items-center justify-center rounded-full transition-all ${isDeleteMode ? 'bg-red-100 text-red-600' : 'bg-stone-50 text-stone-400'}`}
-                            >
-                                <Icon name={isDeleteMode ? "check" : "trash-2"} size={18} />
-                            </button>
-                            <button onClick={() => setIsAddPracticeOpen(true)} className="w-10 h-10 flex items-center justify-center bg-stone-100 rounded-full active:scale-90 transition-all">
-                                <Icon name="plus" size={20} />
-                            </button>
-                        </div>
                     </header>
 
                     <main className="flex-1 p-6 overflow-y-auto">
                         {activeTab === 'home' && (
                             <div className="space-y-8 animate-in fade-in duration-500">
                                 <section>
-                                    <h2 className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-4 flex justify-between">
-                                        <span>今日修持</span>
-                                        {isDeleteMode && <span className="text-red-500 font-bold animate-pulse">管理模式開啟中</span>}
-                                    </h2>
+                                    <h2 className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-4">今日修持</h2>
                                     <div className="space-y-3">
                                         {practices.map(p => (
-                                            <div key={p.id} className="relative">
-                                                <div 
-                                                    onClick={() => { if(!isDeleteMode) { setSelectedPracticeId(p.id); setIsAddLogOpen(true); } }} 
-                                                    className={`bg-white p-5 rounded-3xl border border-stone-100 shadow-sm flex justify-between items-center transition-all ${isDeleteMode ? 'opacity-50 grayscale' : 'cursor-pointer active:bg-stone-50'}`}
-                                                >
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-1.5 h-10 rounded-full" style={{ backgroundColor: p.color }}></div>
-                                                        <div><h3 className="font-bold text-stone-700">{p.title}</h3><p className="text-stone-400 text-xs">累計 {p.total.toLocaleString()}</p></div>
-                                                    </div>
-                                                    {!isDeleteMode && <Icon name="plus" size={16} className="text-stone-300" />}
+                                            <div 
+                                                key={p.id} 
+                                                onClick={() => { setSelectedPracticeId(p.id); setIsAddLogOpen(true); }} 
+                                                className="bg-white p-5 rounded-3xl border border-stone-100 shadow-sm flex justify-between items-center cursor-pointer active:bg-stone-50 transition-colors"
+                                            >
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-1.5 h-10 rounded-full" style={{ backgroundColor: p.color }}></div>
+                                                    <div><h3 className="font-bold text-stone-700">{p.title}</h3><p className="text-stone-400 text-xs">累計 {p.total.toLocaleString()}</p></div>
                                                 </div>
-                                                {isDeleteMode && (
-                                                    <button 
-                                                        onClick={() => setConfirmDeleteId(p.id)}
-                                                        className="absolute right-4 top-1/2 -translate-y-1/2 bg-red-500 text-white p-3 rounded-full shadow-lg delete-btn"
-                                                    >
-                                                        <Icon name="x" size={16} />
-                                                    </button>
-                                                )}
+                                                <Icon name="plus" size={16} className="text-stone-300" />
                                             </div>
                                         ))}
+                                        {practices.length === 0 && (
+                                            <div className="text-center py-10 border-2 border-dashed border-stone-100 rounded-3xl">
+                                                <p className="text-stone-400 text-sm italic">請先前往管理頁面新增項目</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </section>
                                 <section>
@@ -208,10 +181,7 @@
                                                     <span>{new Date(l.date).toLocaleDateString()}</span>
                                                 </div>
                                                 {l.count > 0 && <p className="text-lg font-serif font-bold text-amber-600 mb-1">{l.count} 遍</p>}
-                                                {l.note && <div className="flex gap-2 text-stone-600 text-sm italic border-t border-stone-50 pt-2 mt-1">
-                                                    <Icon name="message-square" size={14} className="mt-1 shrink-0 opacity-50" />
-                                                    {l.note}
-                                                </div>}
+                                                {l.note && <div className="flex gap-2 text-stone-600 text-sm italic border-t border-stone-50 pt-2 mt-1"><Icon name="message-square" size={14} className="mt-1 shrink-0 opacity-50" />{l.note}</div>}
                                             </div>
                                         ))}
                                     </div>
@@ -245,16 +215,52 @@
                                 </div>
                             </div>
                         )}
+
+                        {activeTab === 'manage' && (
+                            <div className="space-y-8 animate-in fade-in duration-500">
+                                <section>
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h2 className="text-[10px] font-black text-stone-400 uppercase tracking-widest">項目管理</h2>
+                                        <button 
+                                            onClick={() => setIsAddPracticeOpen(true)}
+                                            className="flex items-center gap-1 bg-stone-800 text-white px-3 py-1.5 rounded-full text-xs font-bold"
+                                        >
+                                            <Icon name="plus" size={14} /> 新增項目
+                                        </button>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {practices.map(p => (
+                                            <div key={p.id} className="bg-white p-5 rounded-3xl border border-stone-100 shadow-sm flex justify-between items-center">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-1.5 h-10 rounded-full" style={{ backgroundColor: p.color }}></div>
+                                                    <div><h3 className="font-bold text-stone-700">{p.title}</h3><p className="text-stone-400 text-xs">累計遍數：{p.total.toLocaleString()}</p></div>
+                                                </div>
+                                                <button 
+                                                    onClick={() => setConfirmDeleteId(p.id)}
+                                                    className="bg-red-50 text-red-500 p-2.5 rounded-full"
+                                                >
+                                                    <Icon name="trash-2" size={18} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </section>
+                            </div>
+                        )}
                     </main>
 
                     <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/80 backdrop-blur-xl border-t border-stone-100 flex justify-around py-4 pb-8 z-20">
-                        <button onClick={() => {setActiveTab('home'); setIsDeleteMode(false);}} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'home' ? 'text-stone-900 scale-110' : 'text-stone-300'}`}>
+                        <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'home' ? 'text-stone-900 scale-110' : 'text-stone-300'}`}>
                             <Icon name="calendar" size={22} />
                             <span className="text-[10px] font-bold">修持</span>
                         </button>
-                        <button onClick={() => {setActiveTab('stats'); setIsDeleteMode(false);}} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'stats' ? 'text-stone-900 scale-110' : 'text-stone-300'}`}>
+                        <button onClick={() => setActiveTab('stats')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'stats' ? 'text-stone-900 scale-110' : 'text-stone-300'}`}>
                             <Icon name="bar-chart-3" size={22} />
                             <span className="text-[10px] font-bold">數據</span>
+                        </button>
+                        <button onClick={() => setActiveTab('manage')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'manage' ? 'text-stone-900 scale-110' : 'text-stone-300'}`}>
+                            <Icon name="settings" size={22} />
+                            <span className="text-[10px] font-bold">管理</span>
                         </button>
                     </nav>
 
@@ -272,16 +278,11 @@
                                 <div className="space-y-3">
                                     <button 
                                         onClick={() => handleDeletePractice(confirmDeleteId)}
-                                        className="w-full bg-red-500 text-white py-4 rounded-2xl font-bold active:scale-95 transition-all shadow-lg shadow-red-100"
+                                        className="w-full bg-red-500 text-white py-4 rounded-2xl font-bold active:scale-95 transition-all"
                                     >
                                         確定移除
                                     </button>
-                                    <button 
-                                        onClick={() => setConfirmDeleteId(null)}
-                                        className="w-full text-stone-400 py-2 font-bold"
-                                    >
-                                        取消
-                                    </button>
+                                    <button onClick={() => setConfirmDeleteId(null)} className="w-full text-stone-400 py-2 font-bold">取消</button>
                                 </div>
                             </div>
                         </div>
@@ -303,7 +304,7 @@
                                         <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2 block">當下心境</label>
                                         <textarea value={inputNote} onChange={(e) => setInputNote(e.target.value)} placeholder="寫下感悟..." rows={3} className="w-full bg-stone-50 rounded-[1.5rem] p-5 text-stone-700 outline-none focus:ring-2 ring-stone-100 transition-all resize-none" />
                                     </div>
-                                    <button onClick={handleAddLog} className="w-full bg-stone-800 text-white py-5 rounded-[2rem] font-bold text-lg active:scale-95 transition-all">存入日誌</button>
+                                    <button onClick={handleAddLog} className="w-full bg-stone-800 text-white py-5 rounded-[2rem] font-bold text-lg">存入日誌</button>
                                 </div>
                             </div>
                         </div>
